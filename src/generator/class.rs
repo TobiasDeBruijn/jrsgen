@@ -2,6 +2,7 @@ use convert_case::{Case, Casing};
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use crate::class_tree::ClassEntry;
+use crate::formatter::rename;
 
 pub fn generate_interface(class: &ClassEntry) -> (TokenStream, Ident) {
     let name_ident = format_ident!("{}", class.name.split(".").last().unwrap());
@@ -55,21 +56,18 @@ fn generate_struct_trait_impls(name_ident: &Ident, fully_qualified_class_name: &
 
 pub fn generate_class(class: &ClassEntry) -> (TokenStream, Ident) {
     println!("{}", class.name);
-    let name_ident = format_ident!("{}", class.name.split(".").last().unwrap());
+
+    let compatible_name = rename(&class.name);
+
+    let name_ident = format_ident!("{}", compatible_name.split('.').last().unwrap());
     let fully_qualified_class_path = class.name.replace('.', "/");
 
     let gen_struct = generate_struct(&name_ident);
     let trait_impls = generate_struct_trait_impls(&name_ident, &fully_qualified_class_path);
     let interfaces = class.interfaces.iter()
         .map(|x| {
-            let mut name = x.split('.').last().unwrap();
-
-            if name.contains('$') {
-                let components = name.split('$').collect::<Vec<_>>();
-                let child = components.last().unwrap();
-
-                name = child
-            }
+            let name_compatible = rename(x);
+            let mut name = name_compatible.split('.').last().unwrap();
 
             format_ident!("{}", name)
         })

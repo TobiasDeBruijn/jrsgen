@@ -1,10 +1,13 @@
 use log::{debug, trace};
 use clap::Parser;
 use parser::class_tree;
+use crate::formatter::FormattedClassEntry;
 use crate::parser::jvm::Jvm;
 
 mod parser;
-mod generator;
+//mod generator;
+mod config;
+mod formatter;
 
 pub type JResult<T> = std::result::Result<T, anyhow::Error>;
 
@@ -30,6 +33,13 @@ fn main() {
     trace!("Built tree:");
     trace!("{:#?}", class_tree);
 
+    debug!("Formatting");
+    let formatted = class_tree.into_iter()
+        .map(FormattedClassEntry::from)
+        .collect::<Vec<_>>();
+
+    trace!("{:#?}", formatted);
+
     debug!("Generating code");
-    generator::generate(class_tree).expect("Failed to generate code");
+    //generator::generate(class_tree).expect("Failed to generate code");
 }

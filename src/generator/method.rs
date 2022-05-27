@@ -3,7 +3,7 @@ use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use crate::class_tree::{ArgumentType, MethodEntry};
-use crate::generator::format_name;
+use crate::formatter::rename;
 
 pub fn generate_method(method: &MethodEntry) -> TokenStream {
     // Filter out lamdas and other things
@@ -31,7 +31,7 @@ pub fn generate_method(method: &MethodEntry) -> TokenStream {
 
 fn generate_static(method: &MethodEntry) -> TokenStream {
     let name_snake = method.name.to_case(Case::Snake);
-    let formatted = format_name(&name_snake);
+    let formatted = rename(&name_snake);
 
     let name_snake_ident = format_ident!("{}", formatted);
     let arguments = generate_rust_arguments(method);
@@ -104,8 +104,9 @@ fn generate_return_handler(method: &MethodEntry) -> TokenStream {
             ArgumentType::Double => quote! {
                 let value = jvalue.d()?;
             },
-            ArgumentType::Object(_) => quote! {
+            ArgumentType::Object(object) => quote! {
                 let value = jvalue.l()?;
+                let value = object.
             },
             ArgumentType::Array(class_name) => quote! {
                 todo!("Array type for class {}", #class_name);
@@ -150,7 +151,8 @@ fn argument_type_to_signature(argument_type: &ArgumentType) -> String {
             let name = name.split('.')
                 .map(format_name)
                 .map(|x| x.to_string())
-                .collect::<String>();
+                .collect::<Vec<_>>()
+                .join(".");
 
             let name_slashed = name.replace('.', "/");
             format!("L{};", name_slashed)

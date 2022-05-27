@@ -138,7 +138,7 @@ impl MethodEntry {
                 let class = Class::for_name(env, &ret_name)?;
                 let is_array = env.call_method(class.class.into_inner(), "isArray", "()Z", &[])?.z()?;
                 if is_array {
-                    Some(ArgumentType::Array(ret_name))
+                    Some(ArgumentType::Array(Box::new(ArgumentType::Object(ret_name))))
                 } else {
                     Some(ArgumentType::Object(ret_name))
                 }
@@ -155,7 +155,7 @@ impl MethodEntry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ArgumentType {
     Boolean,
     Byte,
@@ -166,10 +166,24 @@ pub enum ArgumentType {
     Float,
     Double,
     Object(String),
-    Array(String),
+    Array(Box<ArgumentType>),
 }
 
 impl ArgumentType {
+    pub fn from_signature_type(i: &str) -> Option<Self> {
+        match i {
+            "B" => Some(Self::Byte),
+            "Z" => Some(Self::Boolean),
+            "J" => Some(Self::Long),
+            "I" => Some(Self::Int),
+            "F" => Some(Self::Float),
+            "D" => Some(Self::Double),
+            "S" => Some(Self::Short),
+            "C" => Some(Self::Char),
+            _ => None
+        }
+    }
+
     pub fn new(env: &JNIEnv<'_>, name: String) -> JResult<ArgumentType> {
         match name.as_str() {
             "boolean" => Ok(Self::Boolean),
@@ -184,7 +198,8 @@ impl ArgumentType {
                 let class = Class::for_name(env, &name)?;
                 let is_array = env.call_method(class.class.into_inner(), "isArray", "()Z", &[])?.z()?;
                 if is_array {
-                    Ok(Self::Array(name))
+                    let this = Self::from_signature_type(&name).unwrap_or(ArgumentType::Object(name));
+                    Ok(Self::Array(Box::new(this)))
                 } else {
                     Ok(Self::Object(name))
                 }

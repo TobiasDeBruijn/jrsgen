@@ -8,6 +8,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use crate::class_tree::{ClassEntry, ClassType};
+use crate::formatter::rename;
 use crate::generator::class::{generate_class, generate_interface};
 use crate::generator::method::generate_method;
 use crate::JResult;
@@ -15,22 +16,13 @@ use crate::JResult;
 mod class;
 mod method;
 
-pub fn format_name(x: &str) -> &str {
-    match x {
-        "impl" => "impl_k",
-        "move" => "move_k",
-        "in" => "in_k",
-        _ => x
-    }
-}
-
 pub fn generate(tree: Vec<ClassEntry>) -> JResult<()> {
     let base_dir = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/output/src/bindings"));
 
     tree.into_iter()
         .try_for_each(|mut class| {
             let mut components = class.name.split('.').into_iter()
-                .map(format_name)
+                .map(rename)
                 .collect::<Vec<_>>();
 
             let mut name = components.pop().unwrap().to_string();
